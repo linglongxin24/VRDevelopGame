@@ -10,8 +10,7 @@
 > TreasureHunt游戏场景包括一个平面接地网格和一个浮动 “宝藏”多维数据集。 当用户观看立方体时，立方体将变成金色。 用户可以直接激活Cardboard触发器在其Cardboard查看器上使用触摸触发器，或使用白日梦基于控制器的触发器仿真。 然后激活触发器,点击寻找宝藏，宝藏消失后随机重新定位立方体。
 
 
-![](https://github.com/linglongxin24/VRDevelopImage/blob/master/screenshot/Screenshot_2016-12-23-14-10-28-903_VRDevelop.png?raw=true)
-![](https://github.com/linglongxin24/VRDevelopImage/blob/master/screenshot/Screenshot_2016-12-23-14-10-41-700_VRDevelop.png?raw=true)
+![](https://github.com/linglongxin24/VRDevelopGame/blob/master/screenshot/Screenshot_2016-12-24-11-45-18-519_VRDevelopGame.png?raw=true)
 
 #一.在build.gradle中引入谷歌VR的SDK依赖
 
