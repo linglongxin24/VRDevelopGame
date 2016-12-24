@@ -1,140 +1,57 @@
-package cn.bluemobi.dylan.vrdevelopgame;
+#【Android开发VR】三.开发一个寻宝类VR游戏TreasureHunt
 
-import android.content.Context;
-import android.opengl.GLES20;
-import android.opengl.Matrix;
-import android.os.Bundle;
-import android.os.Vibrator;
-import android.util.Log;
+>VR即Virtual Reality虚拟现实。虚拟现实技术是一种可以创建和体验虚拟世界的计算机仿真系统它利用计算机生成一种模拟环境是一种多源信息融合的交互式的三维动态视景和实体行为的系统仿真使用户沉浸到该环境中。
+那么，如何在Android中去开发VR功能的APP呢？我们利用谷歌提供的开源SDK去实现一个360°全景游戏的功能。接下来主要是针对谷歌提供的开发VR的SDK中的游戏例子进行翻译。
 
-import com.google.vr.sdk.audio.GvrAudioEngine;
-import com.google.vr.sdk.base.AndroidCompat;
-import com.google.vr.sdk.base.Eye;
-import com.google.vr.sdk.base.GvrActivity;
-import com.google.vr.sdk.base.GvrView;
-import com.google.vr.sdk.base.HeadTransform;
-import com.google.vr.sdk.base.Viewport;
+>CardBoard：卡纸板，google早期推出的VR 开发集合，封装修改了Activity，GLSurfaceView 以及 Render等标准类的一层API，其中具体细致的实现封在so库中，用户使用CardBoard提供的jar包以及so，按照API的规则使用OPENGL实现特定函数即可开发VR程序
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
+>DayDream：白日梦，在CardBoard基础上的专业版，实现了更多的VR特性功能，如3D音效，全景视图，全景视频播放，控制器，封装的API和so也相应的增多，API更加有结构模块化。
 
-import javax.microedition.khronos.egl.EGLConfig;
+> TreasureHunt游戏场景包括一个平面接地网格和一个浮动 “宝藏”多维数据集。 当用户观看立方体时，立方体将变成金色。 用户可以直接激活Cardboard触发器在其Cardboard查看器上使用触摸触发器，或使用白日梦基于控制器的触发器仿真。 然后激活触发器,点击寻找宝藏，宝藏消失后随机重新定位立方体。
 
-/**
- * 谷歌VR开发游戏的例子：寻宝类游戏
- * <p>
- * CardBoard：卡纸板，google早期推出的VR 开发集合，封装修改了Activity，GLSurfaceView 以及 Render等标准类的一层API，其中具体细致的实现封在so库中，用户使用CardBoard提供的jar包以及so，按照API的规则使用OPENGL实现特定函数即可开发VR程序
- * <p>
- * DayDream：白日梦，在CardBoard基础上的专业版，实现了更多的VR特性功能，如3D音效，全景视图，全景视频播放，控制器，封装的API和so也相应的增多，API更加有结构模块化。
- * <p>
- * TreasureHunt场景包括一个平面接地网格和一个浮动
- * “宝藏”多维数据集。 当用户观看立方体时，立方体将变成金色。
- * 用户可以直接激活Cardboard触发器
- * 在其Cardboard查看器上使用触摸触发器，或使用白日梦
- * 基于控制器的触发器仿真。 然后激活触发器,点击寻找宝藏，宝藏消失后
- * 随机重新定位立方体。
- */
-public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoRenderer {
-    /**
-     * 立方体
-     */
-    protected float[] modelCube;
-    /**
-     * 立方体位置
-     */
-    protected float[] modelPosition;
 
-    private static final String TAG = "TreasureHuntActivity";
-    /**
-     * 透视图的近处
-     */
-    private static final float Z_NEAR = 0.1f;
-    /**
-     * 透视图的远处
-     */
-    private static final float Z_FAR = 100.0f;
+![](https://github.com/linglongxin24/VRDevelopImage/blob/master/screenshot/Screenshot_2016-12-23-14-10-28-903_VRDevelop.png?raw=true)
+![](https://github.com/linglongxin24/VRDevelopImage/blob/master/screenshot/Screenshot_2016-12-23-14-10-41-700_VRDevelop.png?raw=true)
 
-    private static final float CAMERA_Z = 0.01f;
-    private static final float TIME_DELTA = 0.3f;
+#一.在build.gradle中引入谷歌VR的SDK依赖
 
-    private static final float YAW_LIMIT = 0.12f;
-    private static final float PITCH_LIMIT = 0.12f;
+```gralde
+    compile 'com.google.vr:sdk-audio:1.10.0'
+    compile 'com.google.vr:sdk-base:1.10.0'
+```
 
-    private static final int COORDS_PER_VERTEX = 3;
+#二.注意支持的最小SDK
 
-    // We keep the light always position just above the user.
-    private static final float[] LIGHT_POS_IN_WORLD_SPACE = new float[]{0.0f, 2.0f, 0.0f, 1.0f};
+```gradle
+  minSdkVersion 19
+  targetSdkVersion 25
+```
 
-    // Convenience vector for extracting the position from a matrix via multiplication.
-    private static final float[] POS_MATRIX_MULTIPLY_VEC = {0, 0, 0, 1.0f};
+#三.界面布局文件
 
-    private static final float MIN_MODEL_DISTANCE = 3.0f;
-    private static final float MAX_MODEL_DISTANCE = 7.0f;
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ui_layout"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" >
 
-    /**
-     * 立方块的声音
-     */
-    private static final String OBJECT_SOUND_FILE = "cube_sound.wav";
-    /**
-     * 点击成功后的声音
-     */
-    private static final String SUCCESS_SOUND_FILE = "success.wav";
 
-    private final float[] lightPosInEyeSpace = new float[4];
+    <com.google.vr.sdk.base.GvrView
+        android:id="@+id/gvr_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true" />
 
-    private FloatBuffer floorVertices;
-    private FloatBuffer floorColors;
-    private FloatBuffer floorNormals;
+</RelativeLayout>
 
-    private FloatBuffer cubeVertices;
-    private FloatBuffer cubeColors;
-    private FloatBuffer cubeFoundColors;
-    private FloatBuffer cubeNormals;
+```
 
-    private int cubeProgram;
-    private int floorProgram;
+#四.绘制TreasureHunt的VR游戏界面代码
 
-    private int cubePositionParam;
-    private int cubeNormalParam;
-    private int cubeColorParam;
-    private int cubeModelParam;
-    private int cubeModelViewParam;
-    private int cubeModelViewProjectionParam;
-    private int cubeLightPosParam;
-
-    private int floorPositionParam;
-    private int floorNormalParam;
-    private int floorColorParam;
-    private int floorModelParam;
-    private int floorModelViewParam;
-    private int floorModelViewProjectionParam;
-    private int floorLightPosParam;
-
-    private float[] camera;
-    private float[] view;
-    private float[] headView;
-    private float[] modelViewProjection;
-    private float[] modelView;
-    private float[] modelFloor;
-
-    private float[] tempPosition;
-    private float[] headRotation;
-
-    private float objectDistance = MAX_MODEL_DISTANCE / 2.0f;
-    private float floorDepth = 20f;
-
-    private Vibrator vibrator;
-    /**
-     * Vr声音引擎
-     */
-    private GvrAudioEngine gvrAudioEngine;
-    private volatile int sourceId = GvrAudioEngine.INVALID_ID;
-    private volatile int successSourceId = GvrAudioEngine.INVALID_ID;
+```java
 
     /**
      * 将视图设置为我们的GvrView并初始化我们将用于渲染我们的场景的转换矩阵。
@@ -619,4 +536,6 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
 
         return Math.abs(pitch) < PITCH_LIMIT && Math.abs(yaw) < YAW_LIMIT;
     }
-}
+```
+
+#五.[GitHub](https://github.com/linglongxin24/VRDevelopGame)
